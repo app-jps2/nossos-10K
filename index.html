@@ -49,7 +49,7 @@
 
     <div class="header">
         <h1>Desafio R$ 10.011</h1>
-        <p>Marque abaixo o valor que já foi depositado!</p>
+        <p>Marque abaixo os valores já depositados!</p>
         <div id="status-rede" class="loading">Conectando ao banco de dados...</div>
     </div>
 
@@ -66,9 +66,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // =========================================================
-        // ⚠️ LEMBRE-SE DE RECOPIAR AS SUAS CREDENCIAIS DO FIREBASE AQUI
-        // =========================================================
+        // Suas configurações oficiais do Firebase inseridas com sucesso
         const firebaseConfig = {
             apiKey: "AIzaSyCtdHE_DN_3LF16G_KRsOlferS-gdcUnw4",
             authDomain: "meu-app-10k.firebaseapp.com",
@@ -79,6 +77,7 @@
             measurementId: "G-BBTFS2T6K9"
         };
 
+        // Inicialização dos serviços
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const docRef = doc(db, "desafio10k", "progresso_usuario");
@@ -86,8 +85,9 @@
         const targetValue = 10011;
         const gridContainer = document.getElementById('matrix-grid');
         let checkedNumbers = [];
-        let isFirstLoad = true; // Chave de segurança para evitar que o app limpe os dados ao carregar
+        let isFirstLoad = true;
 
+        // Renderização visual dos quadradinhos (1 ao 141)
         function renderGrid() {
             gridContainer.innerHTML = '';
             for (let i = 1; i <= 141; i++) {
@@ -100,8 +100,7 @@
                 }
 
                 cell.addEventListener('click', async () => {
-                    // Impede o clique enquanto o banco de dados não carregar na primeira vez
-                    if (isFirstLoad) return; 
+                    if (isFirstLoad) return; // Trava de segurança enquanto carrega do banco
 
                     document.getElementById('status-rede').innerText = "Salvando na nuvem...";
                     if (cell.classList.contains('checked')) {
@@ -110,7 +109,7 @@
                         checkedNumbers.push(i);
                     }
                     
-                    // Salva a alteração
+                    // Envia a nova lista de números marcados para a nuvem
                     await setDoc(docRef, { numeros: checkedNumbers });
                 });
 
@@ -118,6 +117,7 @@
             }
         }
 
+        // Atualização dos textos do painel de controle superior
         function updateDashboard() {
             let currentSaved = 0;
             checkedNumbers.forEach(num => currentSaved += num);
@@ -130,10 +130,10 @@
             document.getElementById('progress-bar').style.width = `${percent}%`;
         }
 
-        // Renderiza uma matriz visual desativada temporariamente até receber a resposta da nuvem
+        // Renderiza a estrutura inicial travada
         renderGrid();
 
-        // Escuta a nuvem em tempo real
+        // Ouve as mudanças no Firebase em tempo real
         onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
                 checkedNumbers = docSnap.data().numeros || [];
@@ -141,13 +141,13 @@
                 checkedNumbers = [];
             }
             
-            isFirstLoad = false; // Libera o aplicativo para registrar novos cliques com segurança
+            isFirstLoad = false; // Desbloqueia os cliques com segurança após o carregamento inicial
             document.getElementById('status-rede').innerText = "✓ Sincronizado e seguro";
             renderGrid();
             updateDashboard();
         }, (error) => {
             document.getElementById('status-rede').innerText = "Erro ao sincronizar.";
-            console.error(error);
+            console.error("Erro no Firebase: ", error);
         });
     </script>
 </body>
