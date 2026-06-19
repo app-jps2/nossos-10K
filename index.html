@@ -50,7 +50,7 @@
     <div class="header">
         <h1>Desafio R$ 10.011</h1>
         <p>Sincronizado em tempo real!</p>
-        <div id="status-rede" class="loading">Conectando ao banco de dados...</div>
+        <div id="status-rede" class="loading">Marque abaixo o valor que já depositou no seu cofre!</div>
     </div>
 
     <div class="dashboard">
@@ -67,7 +67,7 @@
         import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // =========================================================
-        // ⚠️ SUBSTITUA OS VALORES ABAIXO PELOS SEUS DADOS DO FIREBASE
+        // ⚠️ LEMBRE-SE DE RECOPIAR AS SUAS CREDENCIAIS DO FIREBASE AQUI
         // =========================================================
         const firebaseConfig = {
             apiKey: "AIzaSyCtdHE_DN_3LF16G_KRsOlferS-gdcUnw4",
@@ -79,7 +79,6 @@
             measurementId: "G-BBTFS2T6K9"
         };
 
-        // Inicializa o Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const docRef = doc(db, "desafio10k", "progresso_usuario");
@@ -87,8 +86,8 @@
         const targetValue = 10011;
         const gridContainer = document.getElementById('matrix-grid');
         let checkedNumbers = [];
+        let isFirstLoad = true; // Chave de segurança para evitar que o app limpe os dados ao carregar
 
-        // Renderiza as células na tela
         function renderGrid() {
             gridContainer.innerHTML = '';
             for (let i = 1; i <= 141; i++) {
@@ -101,13 +100,17 @@
                 }
 
                 cell.addEventListener('click', async () => {
+                    // Impede o clique enquanto o banco de dados não carregar na primeira vez
+                    if (isFirstLoad) return; 
+
                     document.getElementById('status-rede').innerText = "Salvando na nuvem...";
                     if (cell.classList.contains('checked')) {
                         checkedNumbers = checkedNumbers.filter(num => num !== i);
                     } else {
                         checkedNumbers.push(i);
                     }
-                    // Envia para a nuvem
+                    
+                    // Salva a alteração
                     await setDoc(docRef, { numeros: checkedNumbers });
                 });
 
@@ -127,13 +130,18 @@
             document.getElementById('progress-bar').style.width = `${percent}%`;
         }
 
-        // Escuta a nuvem em tempo real (Se mudar no PC, muda no celular instantaneamente)
+        // Renderiza uma matriz visual desativada temporariamente até receber a resposta da nuvem
+        renderGrid();
+
+        // Escuta a nuvem em tempo real
         onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
                 checkedNumbers = docSnap.data().numeros || [];
             } else {
                 checkedNumbers = [];
             }
+            
+            isFirstLoad = false; // Libera o aplicativo para registrar novos cliques com segurança
             document.getElementById('status-rede').innerText = "✓ Sincronizado e seguro";
             renderGrid();
             updateDashboard();
