@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Desafio 10k</title>
+    <title>Nosso Desafio 10k - Vamos Juntos!</title>
     <style>
         :root {
             --primary: #2ecc71;
@@ -21,11 +21,7 @@
             flex-direction: column;
             align-items: center;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 25px;
-            max-width: 500px;
-        }
+        .header { text-align: center; margin-bottom: 25px; max-width: 500px; }
         .dashboard {
             background-color: var(--card-bg);
             border-radius: 15px;
@@ -36,53 +32,16 @@
             margin-bottom: 25px;
             box-sizing: border-box;
         }
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
-        }
-        .progress-bar-bg {
-            background-color: #718093;
-            border-radius: 10px;
-            height: 20px;
-            width: 100%;
-            overflow: hidden;
-        }
-        .progress-bar {
-            background-color: var(--primary);
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 10px;
-            width: 100%;
-            max-width: 500px;
-        }
+        .stat-row { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 1.1rem; }
+        .progress-bar-bg { background-color: #718093; border-radius: 10px; height: 20px; width: 100%; overflow: hidden; }
+        .progress-bar { background-color: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; width: 100%; max-width: 500px; }
         .cell {
-            background-color: var(--card-bg);
-            border: 2px solid #718093;
-            border-radius: 8px;
-            padding: 15px 0;
-            text-align: center;
-            font-weight: bold;
-            cursor: pointer;
-            user-select: none;
-            transition: all 0.2s ease;
+            background-color: var(--card-bg); border: 2px solid #718093; border-radius: 8px; padding: 15px 0;
+            text-align: center; font-weight: bold; cursor: pointer; user-select: none; transition: all 0.2s ease;
         }
-        .cell:hover {
-            transform: scale(1.05);
-            border-color: var(--primary);
-        }
-        .cell.checked {
-            background-color: var(--primary);
-            border-color: var(--primary);
-            color: #1e272e;
-            box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
-        }
+        .cell.checked { background-color: var(--primary); border-color: var(--primary); color: #1e272e; box-shadow: 0 0 10px rgba(46, 204, 113, 0.5); }
+        .loading { font-style: italic; color: #aaa; text-align: center; margin-bottom: 10px; }
         h1 { margin: 5px 0; color: var(--primary); }
     </style>
 </head>
@@ -90,40 +49,75 @@
 
     <div class="header">
         <h1>Desafio R$ 10.011</h1>
-        <p>Sem prazos, no seu ritmo. Toque nos números para marcar o depósito.</p>
+        <p>Sincronizado em tempo real entre todos os seus dispositivos.</p>
+        <div id="status-rede" class="loading">Conectando ao banco de dados...</div>
     </div>
 
     <div class="dashboard">
-        <div class="stat-row">
-            <span>Acumulado:</span>
-            <strong id="total-saved" style="color: var(--primary);">R$ 0,00</strong>
-        </div>
-        <div class="stat-row">
-            <span>Falta:</span>
-            <span id="total-remaining">R$ 10.011,00</span>
-        </div>
-        <div class="stat-row">
-            <span>Progresso:</span>
-            <span id="progress-percent">0%</span>
-        </div>
-        <div class="progress-bar-bg">
-            <div class="progress-bar" id="progress-bar"></div>
-        </div>
+        <div class="stat-row"><span>Acumulado:</span><strong id="total-saved" style="color: var(--primary);">R$ 0,00</strong></div>
+        <div class="stat-row"><span>Falta:</span><span id="total-remaining">R$ 10.011,00</span></div>
+        <div class="stat-row"><span>Progresso:</span><span id="progress-percent">0%</span></div>
+        <div class="progress-bar-bg"><div class="progress-bar" id="progress-bar"></div></div>
     </div>
 
     <div class="grid" id="matrix-grid"></div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // =========================================================
+        // ⚠️ SUBSTITUA OS VALORES ABAIXO PELOS SEUS DADOS DO FIREBASE
+        // =========================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtdHE_DN_3LF16G_KRsOlferS-gdcUnw4",
+            authDomain: "meu-app-10k.firebaseapp.com",
+            projectId: "meu-app-10k",
+            storageBucket: "meu-app-10k.firebasestorage.app",
+            messagingSenderId: "815030707217",
+            appId: "1:815030707217:web:baaa26277b64757ae6bdb0",
+            measurementId: "G-BBTFS2T6K9"
+        };
+
+        // Inicializa o Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const docRef = doc(db, "desafio10k", "progresso_usuario");
+
         const targetValue = 10011;
         const gridContainer = document.getElementById('matrix-grid');
-        
-        // Carrega o histórico salvo no navegador, ou cria um novo se não existir
-        let checkedNumbers = JSON.parse(localStorage.getItem('cofre10k_progress')) || [];
+        let checkedNumbers = [];
+
+        // Renderiza as células na tela
+        function renderGrid() {
+            gridContainer.innerHTML = '';
+            for (let i = 1; i <= 141; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.innerText = i;
+
+                if (checkedNumbers.includes(i)) {
+                    cell.classList.add('checked');
+                }
+
+                cell.addEventListener('click', async () => {
+                    document.getElementById('status-rede').innerText = "Salvando na nuvem...";
+                    if (cell.classList.contains('checked')) {
+                        checkedNumbers = checkedNumbers.filter(num => num !== i);
+                    } else {
+                        checkedNumbers.push(i);
+                    }
+                    // Envia para a nuvem
+                    await setDoc(docRef, { numeros: checkedNumbers });
+                });
+
+                gridContainer.appendChild(cell);
+            }
+        }
 
         function updateDashboard() {
             let currentSaved = 0;
             checkedNumbers.forEach(num => currentSaved += num);
-
             const remaining = targetValue - currentSaved;
             const percent = ((currentSaved / targetValue) * 100).toFixed(1);
 
@@ -131,37 +125,22 @@
             document.getElementById('total-remaining').innerText = remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             document.getElementById('progress-percent').innerText = `${percent}%`;
             document.getElementById('progress-bar').style.width = `${percent}%`;
-            
-            // Salva o progresso no armazenamento do navegador
-            localStorage.setItem('cofre10k_progress', JSON.stringify(checkedNumbers));
         }
 
-        // Gera a matriz de 1 a 141
-        for (let i = 1; i <= 141; i++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            cell.innerText = i;
-
-            if (checkedNumbers.includes(i)) {
-                cell.classList.add('checked');
+        // Escuta a nuvem em tempo real (Se mudar no PC, muda no celular instantaneamente)
+        onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                checkedNumbers = docSnap.data().numeros || [];
+            } else {
+                checkedNumbers = [];
             }
-
-            cell.addEventListener('click', () => {
-                if (cell.classList.contains('checked')) {
-                    cell.classList.remove('checked');
-                    checkedNumbers = checkedNumbers.filter(num => num !== i);
-                } else {
-                    cell.classList.add('checked');
-                    checkedNumbers.push(i);
-                }
-                updateDashboard();
-            });
-
-            gridContainer.appendChild(cell);
-        }
-
-        // Inicializa o painel com os valores guardados
-        updateDashboard();
+            document.getElementById('status-rede').innerText = "✓ Sincronizado e seguro";
+            renderGrid();
+            updateDashboard();
+        }, (error) => {
+            document.getElementById('status-rede').innerText = "Erro ao sincronizar.";
+            console.error(error);
+        });
     </script>
 </body>
 </html>
